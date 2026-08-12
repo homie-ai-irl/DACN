@@ -1,0 +1,23 @@
+# ============================================================
+# Credit Card Fraud Detection – Requirements
+# Tested: Windows 11 / Python 3.13
+# ============================================================
+
+# Core ML
+numpy>=1.26.0
+pandas>=2.1.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+
+# Imbalanced learning (SMOTE)
+imbalanced-learn>=0.12.0
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Config
+pyyaml>=6.0
+
+# Optional – hỗ trợ image output
+Pillow>=10.0.0

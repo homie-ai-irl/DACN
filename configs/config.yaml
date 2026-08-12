@@ -1,0 +1,54 @@
+# ============================================================
+# Credit Card Fraud Detection – Pipeline Config
+# Pipeline: StandardScaler → Split → SMOTE → RFE/RFECV → Models → Stacking
+# ============================================================
+
+data:
+  path: "data/creditcard.csv"
+  test_size: 0.20
+  random_state: 42
+  majority_subsample: 50000
+
+preprocessing:
+  random_state: 42
+
+feature_selection:
+  # Chế độ:
+  #   'rfe_fixed' – RFE với n_features CỐ ĐỊNH (nhanh, kiểm soát được)
+  #   'rfecv'     – RFECV tự động tìm n_features tối ưu (chậm hơn)
+  mode: 'rfe_fixed'
+  n_features: 20          # Dùng khi mode='rfe_fixed' (thử 15 hoặc 20)
+  estimator: "random_forest"    # "xgboost" hoặc "random_forest"
+  cv: 5                   # Số folds (chỉ dùng với mode='rfecv')
+  scoring: "f1"           # Metric: "f1", "roc_auc", "average_precision"
+  min_features: 5         # Số features tối thiểu (chỉ dùng với mode='rfecv')
+  random_state: 42
+
+models:
+  logistic_regression:
+    C: 1.0
+    max_iter: 1000
+    random_state: 42
+
+  svm:
+    kernel: "rbf"
+    C: 1.0
+    random_state: 42
+
+  knn:
+    n_neighbors: 5
+
+  xgboost:
+    n_estimators: 100
+    max_depth: 4
+    learning_rate: 0.1
+    random_state: 42
+
+stacking:
+  random_state: 42
+  cv_folds: 5
+
+output:
+  dir: "outputs"
+  save_models: true
+  save_plots: true

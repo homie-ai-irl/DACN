@@ -1,0 +1,5 @@
+data/*
+*.pkl
+__pycache__/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
