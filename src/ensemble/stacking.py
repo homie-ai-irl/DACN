@@ -21,6 +21,7 @@ Tại sao OOF?
   OOF đảm bảo meta-features được tạo từ unseen data.
 """
 
+import time
 import numpy as np
 from sklearn.linear_model    import LogisticRegression
 from sklearn.model_selection import cross_val_predict, StratifiedKFold
@@ -53,6 +54,12 @@ class StackingEnsemble:
         self.knn_  = None
         self.xgb_  = None
         self.meta_ = None   # Logistic Regression meta-learner
+
+        # Thời gian huấn luyện RIÊNG từng model (giây), populated sau fit()
+        # Bao gồm: thời gian sinh OOF (cross_val_predict) + thời gian retrain
+        # trên toàn bộ train set — tức tổng chi phí thực tế để có 1 model sẵn
+        # sàng dùng, tương đương cách đo nếu train model đó độc lập.
+        self.model_times_ = {}
 
     # ─── Build models từ config ──────────────────────────────────────────────
 
@@ -106,28 +113,36 @@ class StackingEnsemble:
 
         print(f"[Stacking] Generating OOF meta-features (cv_folds={self.cv_folds}) ...")
 
+        t0 = time.time()
         oof_lr = cross_val_predict(
             self.lr_, X_train, y_train,
             cv=skf, method='predict_proba', n_jobs=1
         )[:, 1]
+        t_lr_oof = time.time() - t0
         print("[Stacking] ✓ Logistic Regression OOF done")
 
+        t0 = time.time()
         oof_svm = cross_val_predict(
             self.svm_, X_train, y_train,
             cv=skf, method='predict_proba', n_jobs=1
         )[:, 1]
+        t_svm_oof = time.time() - t0
         print("[Stacking] ✓ SVM OOF done")
 
+        t0 = time.time()
         oof_knn = cross_val_predict(
             self.knn_, X_train, y_train,
             cv=skf, method='predict_proba', n_jobs=1
         )[:, 1]
+        t_knn_oof = time.time() - t0
         print("[Stacking] ✓ KNN OOF done")
 
+        t0 = time.time()
         oof_xgb = cross_val_predict(
             self.xgb_, X_train, y_train,
             cv=skf, method='predict_proba', n_jobs=1
         )[:, 1]
+        t_xgb_oof = time.time() - t0
         print("[Stacking] ✓ XGBoost OOF done")
 
         # Stack thành meta-feature matrix [n_samples × 4]
@@ -135,14 +150,40 @@ class StackingEnsemble:
 
         # Train Logistic Regression meta-learner trên OOF predictions
         print("[Stacking] Training Logistic Regression meta-learner ...")
+        t0 = time.time()
         self.meta_.fit(meta_X_train, y_train)
+        t_meta = time.time() - t0
 
         # Retrain base models trên toàn bộ training data
         print("[Stacking] Retraining base models on full train set ...")
+        t0 = time.time()
         self.lr_.fit(X_train, y_train)
+        t_lr_refit = time.time() - t0
+
+        t0 = time.time()
         self.svm_.fit(X_train, y_train)
+        t_svm_refit = time.time() - t0
+
+        t0 = time.time()
         self.knn_.fit(X_train, y_train)
+        t_knn_refit = time.time() - t0
+
+        t0 = time.time()
         self.xgb_.fit(X_train, y_train)
+        t_xgb_refit = time.time() - t0
+
+        # Thời gian "thực" mỗi model = OOF (cv_folds lần fit) + refit cuối
+        # (đây là toàn bộ chi phí tính toán thực sự dùng cho model đó trong
+        # pipeline Stacking, không phải con số dùng chung cho cả cụm)
+        self.model_times_ = {
+            'Logistic Regression': t_lr_oof  + t_lr_refit,
+            'SVM':                 t_svm_oof + t_svm_refit,
+            'KNN':                 t_knn_oof + t_knn_refit,
+            'XGBoost':              t_xgb_oof + t_xgb_refit,
+            'Stacking Ensemble':   (t_lr_oof + t_svm_oof + t_knn_oof + t_xgb_oof
+                                     + t_meta
+                                     + t_lr_refit + t_svm_refit + t_knn_refit + t_xgb_refit),
+        }
 
         print("[Stacking] ✓ Fit complete.")
         return self

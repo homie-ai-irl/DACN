@@ -96,7 +96,9 @@ if __name__ == '__main__':
         o = stk_base_out.get(model_name, {})
         baseline_results[model_name] = {
             **compute_metrics(y_test, o['pred'], o.get('prob')),
-            'training_time': stack_time_before,
+            # Thời gian huấn luyện RIÊNG từng model (không còn gán chung
+            # stack_time_before cho cả 5 dòng — xem stacking.py:model_times_)
+            'training_time': stack_base.model_times_[model_name],
         }
 
     print(f"\n  Baseline results (full {X_train_bal.shape[1]} features):")
@@ -152,10 +154,10 @@ if __name__ == '__main__':
     all_outputs = stack.predict_all_models(X_test_sel)
     after_results = evaluate_all(all_outputs, y_test)
 
-    # Gắn prob + training_time vào after_results
+    # Gắn prob + training_time (riêng từng model) vào after_results
     for name in after_results:
         after_results[name]['prob']          = all_outputs[name].get('prob')
-        after_results[name]['training_time'] = stack_time_after
+        after_results[name]['training_time'] = stack.model_times_[name]
 
     # Xây dựng comparison dict
     comparison = {
@@ -230,6 +232,7 @@ if __name__ == '__main__':
     # ── Done ──────────────────────────────────────────────────────────────────
     elapsed = time.time() - t_pipeline_start
     print(f"\n{'='*70}")
+    
     print(f"  PIPELINE COMPLETE  ({elapsed:.1f}s total)")
     print(f"  Mode: {fs_mode.upper()}  |  Selected features ({n_sel}): {selector.get_selected_names()}")
     print(f"  Outputs: {OUT_DIR}/")
