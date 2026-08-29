@@ -110,7 +110,7 @@ if __name__ == '__main__':
     # STEP 5: Feature Selection
     # ─────────────────────────────────────────────────────────────────────────
     print(f"\n[STEP 5/8] Feature Selection (mode={fs_mode.upper()}) ...")
-    from src.feature_selection.rfecv_selector import RFEFixedSelector, RFECVSelector
+    from src.feature_selection.rfecv_selector import RFEFixedSelector
 
     fs_cfg = cfg['feature_selection']
 
