@@ -3,4 +3,5 @@ data/*
 *.bat
 *.json
 __pycache__/
-!data/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
